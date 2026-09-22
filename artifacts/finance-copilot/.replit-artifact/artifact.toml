@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Finance Copilot"
+description = "An industry-grade personal finance workspace that brings accounts, transactions, budgets, spending insights, and a grounded AI financial copilot into one calm daily experience."
+version = "1.0.0"
+id = "artifacts/finance-copilot"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 19493
+
+[services.development]
+run = "pnpm --filter @workspace/finance-copilot run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/finance-copilot", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/finance-copilot/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "19493"
+BASE_PATH = "/"
