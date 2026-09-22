@@ -3,13 +3,17 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Finance Copilot API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: finance
+    description: Personal finance management operations
+  - name: assistant
+    description: Grounded financial assistant operations
 paths:
   /healthz:
     get:
@@ -24,6 +28,120 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /finance/dashboard:
+    get:
+      operationId: getFinanceDashboard
+      tags: [finance]
+      summary: Get the finance dashboard
+      responses:
+        "200":
+          description: Dashboard overview
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FinanceDashboard"
+  /finance/accounts:
+    get:
+      operationId: listFinanceAccounts
+      tags: [finance]
+      summary: List connected accounts
+      responses:
+        "200":
+          description: Connected accounts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/FinanceAccount"
+  /finance/transactions:
+    get:
+      operationId: listFinanceTransactions
+      tags: [finance]
+      summary: List recent transactions
+      parameters:
+        - name: search
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: category
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        "200":
+          description: Transactions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/FinanceTransaction"
+    post:
+      operationId: createFinanceTransaction
+      tags: [finance]
+      summary: Add a transaction
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FinanceTransactionInput"
+      responses:
+        "201":
+          description: Created transaction
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FinanceTransaction"
+        "400":
+          description: Invalid transaction
+  /finance/budgets:
+    get:
+      operationId: listFinanceBudgets
+      tags: [finance]
+      summary: List budget progress
+      responses:
+        "200":
+          description: Budget progress
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/FinanceBudget"
+  /assistant/chat:
+    post:
+      operationId: sendAssistantChat
+      tags: [assistant]
+      summary: Ask the financial assistant a question
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AssistantChatInput"
+      responses:
+        "200":
+          description: Grounded assistant response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AssistantChatResponse"
+        "400":
+          description: Invalid chat request
+        "503":
+          description: Assistant unavailable
 components:
   schemas:
     HealthStatus:
@@ -33,4 +151,169 @@ components:
           type: string
       required:
         - status
+    FinanceAccount:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        institution:
+          type: string
+        type:
+          type: string
+          enum: [checking, savings, credit, investment]
+        mask:
+          type: string
+        balance:
+          type: number
+        balanceChange:
+          type: number
+        balanceChangeLabel:
+          type: string
+        accent:
+          type: string
+      required: [id, name, institution, type, mask, balance, balanceChange, balanceChangeLabel, accent]
+    FinanceTransaction:
+      type: object
+      properties:
+        id:
+          type: string
+        merchant:
+          type: string
+        category:
+          type: string
+        date:
+          type: string
+          format: date
+        amount:
+          type: number
+        type:
+          type: string
+          enum: [income, expense]
+        account:
+          type: string
+        note:
+          type: string
+        status:
+          type: string
+          enum: [posted, pending]
+      required: [id, merchant, category, date, amount, type, account, note, status]
+    FinanceTransactionInput:
+      type: object
+      properties:
+        merchant:
+          type: string
+          minLength: 1
+        category:
+          type: string
+          minLength: 1
+        date:
+          type: string
+          format: date
+        amount:
+          type: number
+        type:
+          type: string
+          enum: [income, expense]
+        account:
+          type: string
+        note:
+          type: string
+      required: [merchant, category, date, amount, type, account]
+    FinanceBudget:
+      type: object
+      properties:
+        id:
+          type: string
+        category:
+          type: string
+        spent:
+          type: number
+        limit:
+          type: number
+        color:
+          type: string
+        status:
+          type: string
+          enum: [on_track, watch, over]
+      required: [id, category, spent, limit, color, status]
+    FinanceTrendPoint:
+      type: object
+      properties:
+        label:
+          type: string
+        income:
+          type: number
+        spending:
+          type: number
+      required: [label, income, spending]
+    FinanceDashboard:
+      type: object
+      properties:
+        totalBalance:
+          type: number
+        balanceChange:
+          type: number
+        balanceChangePercent:
+          type: number
+        monthlyIncome:
+          type: number
+        monthlySpending:
+          type: number
+        savingsRate:
+          type: number
+        budgetUsed:
+          type: number
+        budgetLimit:
+          type: number
+        insight:
+          type: string
+        insightDetail:
+          type: string
+        spendingByCategory:
+          type: object
+          additionalProperties:
+            type: number
+        trend:
+          type: array
+          items:
+            $ref: "#/components/schemas/FinanceTrendPoint"
+        recentTransactions:
+          type: array
+          items:
+            $ref: "#/components/schemas/FinanceTransaction"
+      required: [totalBalance, balanceChange, balanceChangePercent, monthlyIncome, monthlySpending, savingsRate, budgetUsed, budgetLimit, insight, insightDetail, spendingByCategory, trend, recentTransactions]
+    AssistantChatMessage:
+      type: object
+      properties:
+        role:
+          type: string
+          enum: [user, assistant]
+        content:
+          type: string
+      required: [role, content]
+    AssistantChatInput:
+      type: object
+      properties:
+        message:
+          type: string
+          minLength: 1
+        history:
+          type: array
+          items:
+            $ref: "#/components/schemas/AssistantChatMessage"
+      required: [message]
+    AssistantChatResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        model:
+          type: string
+        sources:
+          type: array
+          items:
+            type: string
+      required: [message, model, sources]
 

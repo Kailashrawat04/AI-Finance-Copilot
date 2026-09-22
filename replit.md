@@ -1,6 +1,6 @@
-# [Project name]
+# Finance Copilot
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+Finance Copilot gives people a clear daily view of balances, spending, budgets, and grounded financial questions in one workspace.
 
 ## Run & Operate
 
@@ -22,23 +22,38 @@ _Replace the heading above with the project's name, and this line with one sente
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- `artifacts/finance-copilot/` — React/Vite app with the dashboard, ledger, budgets, accounts, assistant, and settings routes.
+- `artifacts/api-server/src/routes/finance.ts` — finance data endpoints plus demo seed data.
+- `artifacts/api-server/src/routes/assistant.ts` — grounded assistant endpoint with provider fallback.
+- `lib/api-spec/openapi.yaml` — source of truth for the generated client and validation schemas.
+- `lib/db/src/schema/finance.ts` — PostgreSQL schema for accounts, transactions, and budgets.
+- `artifacts/finance-copilot/src/index.css` — app theme tokens and shared motion styles.
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- The frontend only uses generated hooks from the OpenAPI contract; endpoint payloads are validated with generated Zod schemas on the server.
+- The first release is populated with a small, explicit demo workspace so the product is useful before bank connections and authentication are added.
+- The assistant receives account, budget, and transaction context on every request and is instructed not to invent financial facts or present regulated advice.
+- If the external model is unavailable, the assistant returns a clearly labeled local rules-engine answer from the same finance context instead of failing silently.
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+- Overview: balances, six-month money movement, spending insight, budgets, recent activity, and connected accounts.
+- Transactions: search, category filter, and manual transaction creation with persisted PostgreSQL data.
+- Budgets: category progress and spending context.
+- Accounts: combined balance and account cards.
+- Assistant: grounded questions with model/source transparency and a safe fallback.
+- Settings: locally persisted display and notification preferences.
 
 ## User preferences
 
-_Populate as you build — explicit user instructions worth remembering across sessions._
+- User asked for an industry-level finance management product with a chatbot, using real products/models where available.
 
 ## Gotchas
 
-_Populate as you build — sharp edges, "always run X before Y" rules._
+- The OpenAI API key is read only on the server. Do not expose it in the frontend or logs.
+- The assistant can return the local rules-engine fallback when the external API key has no remaining provider quota.
+- Run `pnpm --filter @workspace/api-spec run codegen` after changing `lib/api-spec/openapi.yaml`.
 
 ## Pointers
 

@@ -1,0 +1,1 @@
+- [AI provider fallback](ai-provider-fallback.md) — configured model access can still hit provider quota limits; keep assistant answers useful and transparent.
