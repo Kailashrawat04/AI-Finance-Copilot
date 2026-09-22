@@ -32,7 +32,8 @@ Finance Copilot gives people a clear daily view of balances, spending, budgets, 
 ## Architecture decisions
 
 - The frontend only uses generated hooks from the OpenAPI contract; endpoint payloads are validated with generated Zod schemas on the server.
-- The first release is populated with a small, explicit demo workspace so the product is useful before bank connections and authentication are added.
+- The first release is populated with a small, explicit demo workspace so the product is useful before bank connections and per-user finance ownership are added.
+- Replit-managed Clerk protects the finance routes; browser API calls use Clerk session cookies and never expose bearer tokens.
 - The assistant receives account, budget, and transaction context on every request and is instructed not to invent financial facts or present regulated advice.
 - If the external model is unavailable, the assistant returns a clearly labeled local rules-engine answer from the same finance context instead of failing silently.
 
@@ -44,6 +45,7 @@ Finance Copilot gives people a clear daily view of balances, spending, budgets, 
 - Accounts: combined balance and account cards.
 - Assistant: grounded questions with model/source transparency and a safe fallback.
 - Settings: locally persisted display and notification preferences.
+- Authentication: public landing page, branded Clerk sign-in/sign-up routes, protected finance routes, signed-in profile display, and sign-out.
 
 ## User preferences
 

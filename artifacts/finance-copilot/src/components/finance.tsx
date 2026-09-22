@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import { Link, useLocation } from 'wouter';
+import { useClerk, useUser } from '@clerk/react';
 import { useHealthCheck, type FinanceAccount, type FinanceBudget, type FinanceTransaction } from '@workspace/api-client-react';
 import {
   ArrowDownLeft,
@@ -12,6 +13,7 @@ import {
   CreditCard,
   Landmark,
   LayoutDashboard,
+  LogOut,
   Menu,
   PanelLeftClose,
   PanelLeftOpen,
@@ -67,7 +69,12 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [location] = useLocation();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { signOut } = useClerk();
+  const { user } = useUser();
   const health = useHealthCheck({ query: { queryKey: ['/api/healthz'] } });
+  const displayName = user?.fullName || user?.username || user?.primaryEmailAddress?.emailAddress || 'Finance member';
+  const initialsLabel = initials(displayName);
+  const basePath = import.meta.env.BASE_URL.replace(/\/$/, '') || '/';
 
   return (
     <div className="min-h-[100dvh] bg-background text-foreground">
@@ -115,10 +122,11 @@ export function AppShell({ children }: { children: ReactNode }) {
           </Link>
           {!collapsed && (
             <div className="mt-4 flex items-center gap-3 rounded-xl bg-sidebar-accent/70 p-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-sidebar-primary/20 text-xs font-semibold text-sidebar-primary">AR</div>
-              <div className="min-w-0"><p className="truncate text-xs font-semibold">Alex Rivera</p><p className="truncate text-[11px] text-sidebar-foreground/45">Personal workspace</p></div>
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-sidebar-primary/20 text-xs font-semibold text-sidebar-primary">{initialsLabel}</div>
+              <div className="min-w-0"><p className="truncate text-xs font-semibold">{displayName}</p><p className="truncate text-[11px] text-sidebar-foreground/45">Personal workspace</p></div>
             </div>
           )}
+          {!collapsed && <button type="button" onClick={() => void signOut({ redirectUrl: basePath })} data-testid="button-sign-out" className="mt-2 flex w-full items-center gap-3 rounded-xl px-3.5 py-3 text-[13px] font-medium text-sidebar-foreground/55 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"><LogOut className="h-[17px] w-[17px]" />Sign out</button>}
         </div>
       </aside>
       <main className={`min-h-[100dvh] transition-[margin] duration-300 ${collapsed ? 'md:ml-[78px]' : 'md:ml-[248px]'}`}>
@@ -133,7 +141,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 <Sparkles className="h-3.5 w-3.5 text-accent" /> Ask Copilot
               </Link>
               <Link href="/settings" aria-label="Open settings" data-testid="link-header-settings" className="flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-card text-muted-foreground transition-colors hover:text-foreground"><Settings className="h-4 w-4" /></Link>
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">AR</div>
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">{initialsLabel}</div>
             </div>
           </div>
           {children}
