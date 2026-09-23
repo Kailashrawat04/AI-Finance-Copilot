@@ -152,19 +152,49 @@ const seedBudgets = [
   { id: "budget-4", category: "Subscriptions", spent: 196, limit: 180, color: "violet", status: "over" },
 ];
 
-let seedPromise: Promise<void> | undefined;
+const seedPromises = new Map<string, Promise<void>>();
 
-export async function ensureFinanceSeeded() {
+export async function ensureFinanceSeeded(userId: string) {
+  let seedPromise = seedPromises.get(userId);
   if (!seedPromise) {
     seedPromise = (async () => {
-      const existing = await db.select({ id: financeAccounts.id }).from(financeAccounts).limit(1);
+      const existing = await db
+        .select({ id: financeAccounts.id })
+        .from(financeAccounts)
+        .where(eq(financeAccounts.userId, userId))
+        .limit(1);
       if (existing.length > 0) return;
-      await db.insert(financeAccounts).values(seedAccounts);
-      await db.insert(financeTransactions).values(seedTransactions);
-      await db.insert(financeBudgets).values(seedBudgets);
+
+      await db.insert(financeAccounts).values(
+        seedAccounts.map(({ id: _id, ...account }) => ({
+          ...account,
+          id: crypto.randomUUID(),
+          userId,
+        })),
+      );
+      await db.insert(financeTransactions).values(
+        seedTransactions.map(({ id: _id, ...transaction }) => ({
+          ...transaction,
+          id: crypto.randomUUID(),
+          userId,
+        })),
+      );
+      await db.insert(financeBudgets).values(
+        seedBudgets.map(({ id: _id, ...budget }) => ({
+          ...budget,
+          id: crypto.randomUUID(),
+          userId,
+        })),
+      );
     })();
+    seedPromises.set(userId, seedPromise);
   }
-  await seedPromise;
+  try {
+    await seedPromise;
+  } catch (error) {
+    seedPromises.delete(userId);
+    throw error;
+  }
 }
 
 function toTransactionResponse(transaction: typeof seedTransactions[number]) {
@@ -177,8 +207,12 @@ function toTransactionResponse(transaction: typeof seedTransactions[number]) {
 
 router.get("/finance/accounts", async (_req, res, next) => {
   try {
-    await ensureFinanceSeeded();
-    const accounts = await db.select().from(financeAccounts);
+    const userId = res.locals.userId as string;
+    await ensureFinanceSeeded(userId);
+    const accounts = await db
+      .select()
+      .from(financeAccounts)
+      .where(eq(financeAccounts.userId, userId));
     res.json(ListFinanceAccountsResponse.parse(accounts));
   } catch (error) {
     next(error);
@@ -187,7 +221,8 @@ router.get("/finance/accounts", async (_req, res, next) => {
 
 router.get("/finance/transactions", async (req, res, next) => {
   try {
-    await ensureFinanceSeeded();
+    const userId = res.locals.userId as string;
+    await ensureFinanceSeeded(userId);
     const params = ListFinanceTransactionsQueryParams.parse(req.query);
     const filters = [];
     if (params.search) {
@@ -202,7 +237,7 @@ router.get("/finance/transactions", async (req, res, next) => {
     const transactions = await db
       .select()
       .from(financeTransactions)
-      .where(filters.length ? and(...filters) : undefined)
+      .where(and(eq(financeTransactions.userId, userId), ...filters))
       .orderBy(desc(financeTransactions.date))
       .limit(params.limit);
     res.json(ListFinanceTransactionsResponse.parse(transactions.map((item) => toTransactionResponse(item))));
@@ -213,10 +248,11 @@ router.get("/finance/transactions", async (req, res, next) => {
 
 router.post("/finance/transactions", async (req, res, next) => {
   try {
-    await ensureFinanceSeeded();
+    const userId = res.locals.userId as string;
     const body = CreateFinanceTransactionBody.parse(req.body);
     const transaction = {
       id: crypto.randomUUID(),
+      userId,
       merchant: body.merchant,
       category: body.category,
       date: body.date.toISOString().slice(0, 10),
@@ -235,8 +271,12 @@ router.post("/finance/transactions", async (req, res, next) => {
 
 router.get("/finance/budgets", async (_req, res, next) => {
   try {
-    await ensureFinanceSeeded();
-    const budgets = await db.select().from(financeBudgets);
+    const userId = res.locals.userId as string;
+    await ensureFinanceSeeded(userId);
+    const budgets = await db
+      .select()
+      .from(financeBudgets)
+      .where(eq(financeBudgets.userId, userId));
     res.json(
       ListFinanceBudgetsResponse.parse(
         budgets.map((budget) => ({
@@ -257,11 +297,16 @@ router.get("/finance/budgets", async (_req, res, next) => {
 
 router.get("/finance/dashboard", async (_req, res, next) => {
   try {
-    await ensureFinanceSeeded();
+    const userId = res.locals.userId as string;
+    await ensureFinanceSeeded(userId);
     const [accounts, transactions, budgets] = await Promise.all([
-      db.select().from(financeAccounts),
-      db.select().from(financeTransactions).orderBy(desc(financeTransactions.date)),
-      db.select().from(financeBudgets),
+      db.select().from(financeAccounts).where(eq(financeAccounts.userId, userId)),
+      db
+        .select()
+        .from(financeTransactions)
+        .where(eq(financeTransactions.userId, userId))
+        .orderBy(desc(financeTransactions.date)),
+      db.select().from(financeBudgets).where(eq(financeBudgets.userId, userId)),
     ]);
     const monthlyIncome = transactions
       .filter((item) => item.type === "income")

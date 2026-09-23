@@ -1,4 +1,5 @@
 import { Router, type IRouter } from "express";
+import { eq } from "drizzle-orm";
 import { db } from "@workspace/db";
 import { financeAccounts, financeBudgets, financeTransactions } from "@workspace/db";
 import { SendAssistantChatBody, SendAssistantChatResponse } from "@workspace/api-zod";
@@ -43,12 +44,13 @@ function localAssistantReply(
 
 router.post("/assistant/chat", async (req, res, next) => {
   try {
-    await ensureFinanceSeeded();
+    const userId = res.locals.userId as string;
+    await ensureFinanceSeeded(userId);
     const { message, history = [] } = SendAssistantChatBody.parse(req.body);
     const [accounts, budgets, transactions] = await Promise.all([
-      db.select().from(financeAccounts),
-      db.select().from(financeBudgets),
-      db.select().from(financeTransactions),
+      db.select().from(financeAccounts).where(eq(financeAccounts.userId, userId)),
+      db.select().from(financeBudgets).where(eq(financeBudgets.userId, userId)),
+      db.select().from(financeTransactions).where(eq(financeTransactions.userId, userId)),
     ]);
 
     const fallback = () =>

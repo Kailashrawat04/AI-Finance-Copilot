@@ -3,6 +3,7 @@ import { createInsertSchema } from "drizzle-zod";
 
 export const financeAccounts = pgTable("finance_accounts", {
   id: text("id").primaryKey(),
+  userId: text("user_id"),
   name: text("name").notNull(),
   institution: text("institution").notNull(),
   type: text("type").notNull(),
@@ -15,6 +16,7 @@ export const financeAccounts = pgTable("finance_accounts", {
 
 export const financeTransactions = pgTable("finance_transactions", {
   id: text("id").primaryKey(),
+  userId: text("user_id"),
   merchant: text("merchant").notNull(),
   category: text("category").notNull(),
   date: text("date").notNull(),
@@ -27,6 +29,7 @@ export const financeTransactions = pgTable("finance_transactions", {
 
 export const financeBudgets = pgTable("finance_budgets", {
   id: text("id").primaryKey(),
+  userId: text("user_id"),
   category: text("category").notNull(),
   spent: real("spent").notNull(),
   limit: real("limit").notNull(),

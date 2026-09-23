@@ -14,6 +14,7 @@ router.use((req, res, next) => {
     res.status(401).json({ error: "Unauthorized" });
     return;
   }
+  res.locals.userId = userId;
   next();
 });
 router.use(financeRouter);
