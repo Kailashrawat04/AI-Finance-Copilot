@@ -11,6 +11,8 @@ import {
   CreateFinanceTransactionResponse,
   CreateFinanceAccountBody,
   CreateFinanceAccountResponse,
+  CreateFinanceBudgetBody,
+  CreateFinanceBudgetResponse,
   GetFinanceDashboardResponse,
   ListFinanceAccountsResponse,
   ListFinanceBudgetsResponse,
@@ -277,6 +279,26 @@ router.get("/finance/budgets", async (_req, res, next) => {
         })),
       ),
     );
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post("/finance/budgets", async (req, res, next) => {
+  try {
+    const userId = res.locals.userId as string;
+    const body = CreateFinanceBudgetBody.parse(req.body);
+    const budget = {
+      id: crypto.randomUUID(),
+      userId,
+      category: body.category,
+      spent: 0,
+      limit: body.limit,
+      color: body.color ?? "teal",
+      status: "on_track",
+    };
+    await db.insert(financeBudgets).values(budget);
+    res.status(201).json(CreateFinanceBudgetResponse.parse(budget));
   } catch (error) {
     next(error);
   }

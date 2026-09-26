@@ -15,6 +15,7 @@ export * from './financeAccountInput';
 export * from './financeAccountInputType';
 export * from './financeAccountType';
 export * from './financeBudget';
+export * from './financeBudgetInput';
 export * from './financeBudgetStatus';
 export * from './financeDashboard';
 export * from './financeDashboardSpendingByCategory';

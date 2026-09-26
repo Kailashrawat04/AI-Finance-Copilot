@@ -8,6 +8,7 @@ import {
   getListFinanceBudgetsQueryKey,
   getListFinanceTransactionsQueryKey,
   useCreateFinanceAccount,
+  useCreateFinanceBudget,
   useCreateFinanceTransaction,
   useGetFinanceDashboard,
   useListFinanceAccounts,
@@ -132,13 +133,70 @@ export function TransactionsPage() {
   return <AppShell><PageIntro eyebrow="Your ledger" title="Every move, in one place." detail="Search, filter, and annotate the activity behind your bigger picture." action={<AddTransactionButton onClick={() => setShowDialog(true)} />} /><div className="animate-rise stagger-1 rounded-2xl border border-card-border bg-card p-4 sm:p-5"><div className="flex flex-col gap-3 lg:flex-row"><div className="flex-1"><SearchField value={search} onChange={setSearch} /></div><div className="relative lg:w-56"><Filter className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><select value={category} onChange={(event) => setCategory(event.target.value)} data-testid="select-filter-category" className="h-11 w-full appearance-none rounded-xl border border-input bg-card pl-10 pr-9 text-sm outline-none focus:border-primary"><option value="">All categories</option>{categories.map((item) => <option key={item} value={item}>{item}</option>)}</select><SelectChevron /></div></div></div><div className="mt-5 rounded-2xl border border-card-border bg-card"><div className="flex items-center justify-between border-b border-border px-4 py-4 sm:px-6"><div><h2 className="text-sm font-semibold">Activity</h2><p className="mt-1 text-xs text-muted-foreground">{transactions.data?.length ?? 0} transactions showing</p></div><span className="hidden items-center gap-1.5 text-[11px] text-muted-foreground sm:flex"><SlidersHorizontal className="h-3.5 w-3.5" /> Updated moments ago</span></div>{transactions.isLoading ? <div className="p-4"><QueryLoading rows={6} /></div> : transactions.isError ? <div className="p-4"><QueryError onRetry={() => void transactions.refetch()} /></div> : transactions.data?.length ? <div className="px-4 sm:px-6">{transactions.data.map((transaction) => <TransactionRow transaction={transaction} key={transaction.id} />)}</div> : <div className="p-4"><EmptyState icon={Search} title="No matching transactions" detail={search || category ? 'Try clearing a filter or searching for a different merchant.' : 'Your ledger is ready for its first entry.'} /></div>}</div>{showDialog && <TransactionDialog onClose={() => setShowDialog(false)} />}</AppShell>;
 }
 
+function BudgetDialog({ onClose }: { onClose: () => void }) {
+  const queryClient = useQueryClient();
+  const create = useCreateFinanceBudget();
+  const [form, setForm] = useState({
+    category: '',
+    limit: '',
+    color: 'teal' as 'teal' | 'gold' | 'coral' | 'violet',
+  });
+  const [formError, setFormError] = useState('');
+
+  const submit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const limit = Number(form.limit);
+    if (!form.category.trim() || !Number.isFinite(limit) || limit <= 0) {
+      setFormError('Add a category and a monthly limit greater than zero.');
+      return;
+    }
+    setFormError('');
+    create.mutate(
+      { data: { category: form.category.trim(), limit, color: form.color } },
+      {
+        onSuccess: () => {
+          void queryClient.invalidateQueries({ queryKey: getListFinanceBudgetsQueryKey() });
+          void queryClient.invalidateQueries({ queryKey: getGetFinanceDashboardQueryKey() });
+          onClose();
+        },
+        onError: () => setFormError('The budget could not be created. Please try again.'),
+      },
+    );
+  };
+
+  return (
+    <div className="fixed inset-0 z-[70] flex items-end justify-center bg-foreground/30 p-0 sm:items-center sm:p-6">
+      <div className="max-h-[92dvh] w-full max-w-lg overflow-y-auto rounded-t-3xl border border-border bg-card p-6 shadow-2xl sm:rounded-2xl" role="dialog" aria-modal="true" aria-labelledby="create-budget-title">
+        <div className="flex items-start justify-between">
+          <div>
+            <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-primary/70">Monthly guardrail</p>
+            <h2 id="create-budget-title" className="mt-2 font-serif text-2xl tracking-[-0.03em]">Create a budget</h2>
+            <p className="mt-1 text-xs text-muted-foreground">Set a limit for one spending category. Current spend starts at zero.</p>
+          </div>
+          <CloseButton onClick={onClose} />
+        </div>
+        <form className="mt-6 space-y-4" onSubmit={submit}>
+          <Field label="Category"><input required value={form.category} onChange={(event) => setForm((current) => ({ ...current, category: event.target.value }))} data-testid="input-budget-category" placeholder="e.g. Groceries" className="form-input" /></Field>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Monthly limit"><input required min="0.01" step="0.01" type="number" value={form.limit} onChange={(event) => setForm((current) => ({ ...current, limit: event.target.value }))} data-testid="input-budget-limit" placeholder="500.00" className="form-input" /></Field>
+            <Field label="Color"><div className="relative"><select value={form.color} onChange={(event) => setForm((current) => ({ ...current, color: event.target.value as typeof current.color }))} data-testid="select-budget-color" className="form-input appearance-none pr-9"><option value="teal">Teal</option><option value="gold">Gold</option><option value="coral">Coral</option><option value="violet">Violet</option></select><SelectChevron /></div></Field>
+          </div>
+          {formError && <p className="rounded-lg bg-destructive/10 px-3 py-2 text-xs text-destructive" data-testid="status-budget-error">{formError}</p>}
+          <button type="submit" disabled={create.isPending} data-testid="button-submit-budget" className="mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary text-sm font-semibold text-primary-foreground transition-transform hover:-translate-y-0.5 disabled:cursor-wait disabled:opacity-60">{create.isPending ? 'Creating budget…' : 'Create budget'} {!create.isPending && <CheckCircle2 className="h-4 w-4" />}</button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 export function BudgetsPage() {
+  const [showDialog, setShowDialog] = useState(false);
   const budgets = useListFinanceBudgets({ query: { queryKey: getListFinanceBudgetsQueryKey() } });
   const dashboard = useGetFinanceDashboard({ query: { queryKey: getGetFinanceDashboardQueryKey() } });
   const data = budgets.data ?? [];
   const totalSpent = data.reduce((sum, budget) => sum + budget.spent, 0);
   const totalLimit = data.reduce((sum, budget) => sum + budget.limit, 0);
-  return <AppShell><PageIntro eyebrow="This month" title="Spend with a little more intention." detail="Budgets are guardrails, not judgments. Use the context to decide what deserves your attention." action={<button type="button" disabled data-testid="button-create-budget" title="Budget creation is not available in this workspace yet" className="flex cursor-not-allowed items-center gap-2 rounded-xl border border-border bg-card px-4 py-2.5 text-xs font-semibold text-muted-foreground opacity-70"><Plus className="h-4 w-4" /> Create budget</button>} />{budgets.isLoading ? <DashboardSkeleton /> : budgets.isError ? <QueryError onRetry={() => void budgets.refetch()} /> : <div className="space-y-6"><div className="grid gap-4 md:grid-cols-3"><StatCard label="Total planned" value={money(totalLimit)} detail="Across active categories" /><StatCard label="Spent so far" value={money(totalSpent)} detail={`${totalLimit ? Math.round(totalSpent / totalLimit * 100) : 0}% of your plan`} tone={totalSpent > totalLimit ? 'negative' : 'positive'} /><StatCard label="Categories to watch" value={String(data.filter((budget) => budget.status !== 'on_track').length).padStart(2, '0')} detail="Worth a closer look this week" tone="accent" /></div><div className="grid gap-6 lg:grid-cols-[1.1fr_.9fr]"><div className="rounded-2xl border border-card-border bg-card p-5 sm:p-6"><SectionHeading title="Category progress" detail="Where each dollar is landing" /><div className="space-y-7">{data.length ? data.map((budget) => <BudgetBar key={budget.id} budget={budget} />) : <EmptyState icon={Target} title="Set your first budget" detail="Give your month a shape with one category limit." />}</div></div><div className="rounded-2xl border border-card-border bg-card p-5 sm:p-6"><SectionHeading title="Spending context" detail="Compared with your recent baseline" /><div className="space-y-4">{dashboard.data?.spendingByCategory && Object.entries(dashboard.data.spendingByCategory).slice(0, 6).map(([label, value], index) => <div key={label} className="flex items-center gap-3"><div className="flex h-8 w-8 items-center justify-center rounded-lg bg-secondary text-xs font-semibold text-primary">{String(index + 1).padStart(2, '0')}</div><div className="min-w-0 flex-1"><div className="flex justify-between gap-3 text-xs"><span className="truncate font-medium">{label}</span><span className="font-semibold">{money(value)}</span></div><div className="mt-2 h-1.5 rounded-full bg-muted"><div className="h-full rounded-full bg-primary/75" style={{ width: `${Math.min(100, value / Math.max(...Object.values(dashboard.data?.spendingByCategory ?? { total: 1 })) * 100)}%` }} /></div></div></div>)}{!dashboard.data && <p className="text-xs text-muted-foreground">Spending context will appear when your overview is available.</p>}<div className="mt-8 rounded-xl bg-secondary/70 p-4"><div className="flex gap-3"><Info className="mt-0.5 h-4 w-4 shrink-0 text-primary" /><p className="text-xs leading-5 text-muted-foreground">Copilot can help explain a category shift, but it will never decide what you should spend.</p></div></div></div></div></div></div>}</AppShell>;
+  return <AppShell><PageIntro eyebrow="This month" title="Spend with a little more intention." detail="Budgets are guardrails, not judgments. Use the context to decide what deserves your attention." action={<button type="button" onClick={() => setShowDialog(true)} data-testid="button-create-budget" className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-xs font-semibold text-primary-foreground transition-transform hover:-translate-y-0.5"><Plus className="h-4 w-4" /> Create budget</button>} />{budgets.isLoading ? <DashboardSkeleton /> : budgets.isError ? <QueryError onRetry={() => void budgets.refetch()} /> : <div className="space-y-6"><div className="grid gap-4 md:grid-cols-3"><StatCard label="Total planned" value={money(totalLimit)} detail="Across active categories" /><StatCard label="Spent so far" value={money(totalSpent)} detail={`${totalLimit ? Math.round(totalSpent / totalLimit * 100) : 0}% of your plan`} tone={totalSpent > totalLimit ? 'negative' : 'positive'} /><StatCard label="Categories to watch" value={String(data.filter((budget) => budget.status !== 'on_track').length).padStart(2, '0')} detail="Worth a closer look this week" tone="accent" /></div><div className="grid gap-6 lg:grid-cols-[1.1fr_.9fr]"><div className="rounded-2xl border border-card-border bg-card p-5 sm:p-6"><SectionHeading title="Category progress" detail="Where each dollar is landing" /><div className="space-y-7">{data.length ? data.map((budget) => <BudgetBar key={budget.id} budget={budget} />) : <EmptyState icon={Target} title="Set your first budget" detail="Give your month a shape with one category limit." />}</div></div><div className="rounded-2xl border border-card-border bg-card p-5 sm:p-6"><SectionHeading title="Spending context" detail="Compared with your recent baseline" /><div className="space-y-4">{dashboard.data?.spendingByCategory && Object.entries(dashboard.data.spendingByCategory).slice(0, 6).map(([label, value], index) => <div key={label} className="flex items-center gap-3"><div className="flex h-8 w-8 items-center justify-center rounded-lg bg-secondary text-xs font-semibold text-primary">{String(index + 1).padStart(2, '0')}</div><div className="min-w-0 flex-1"><div className="flex justify-between gap-3 text-xs"><span className="truncate font-medium">{label}</span><span className="font-semibold">{money(value)}</span></div><div className="mt-2 h-1.5 rounded-full bg-muted"><div className="h-full rounded-full bg-primary/75" style={{ width: `${Math.min(100, value / Math.max(...Object.values(dashboard.data?.spendingByCategory ?? { total: 1 })) * 100)}%` }} /></div></div></div>)}{!dashboard.data && <p className="text-xs text-muted-foreground">Spending context will appear when your overview is available.</p>}<div className="mt-8 rounded-xl bg-secondary/70 p-4"><div className="flex gap-3"><Info className="mt-0.5 h-4 w-4 shrink-0 text-primary" /><p className="text-xs leading-5 text-muted-foreground">Copilot can help explain a category shift, but it will never decide what you should spend.</p></div></div></div></div></div></div>}{showDialog && <BudgetDialog onClose={() => setShowDialog(false)} />}</AppShell>;
 }
 
 function AccountDialog({ onClose }: { onClose: () => void }) {

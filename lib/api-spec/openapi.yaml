@@ -139,6 +139,25 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/FinanceBudget"
+    post:
+      operationId: createFinanceBudget
+      tags: [finance]
+      summary: Create a budget
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FinanceBudgetInput"
+      responses:
+        "201":
+          description: Created budget
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FinanceBudget"
+        "400":
+          description: Invalid budget
   /assistant/chat:
     post:
       operationId: sendAssistantChat
@@ -286,6 +305,19 @@ components:
           type: string
           enum: [on_track, watch, over]
       required: [id, category, spent, limit, color, status]
+    FinanceBudgetInput:
+      type: object
+      properties:
+        category:
+          type: string
+          minLength: 1
+        limit:
+          type: number
+          exclusiveMinimum: 0
+        color:
+          type: string
+          default: teal
+      required: [category, limit]
     FinanceTrendPoint:
       type: object
       properties:

@@ -179,6 +179,30 @@ export const ListFinanceBudgetsResponse = zod.array(ListFinanceBudgetsResponseIt
 
 
 /**
+ * @summary Create a budget
+ */
+
+export const createFinanceBudgetBodyLimitExclusiveMin = 0;
+
+export const createFinanceBudgetBodyColorDefault = `teal`;
+
+export const CreateFinanceBudgetBody = zod.object({
+  "category": zod.string().min(1),
+  "limit": zod.number().gt(createFinanceBudgetBodyLimitExclusiveMin),
+  "color": zod.string().default(createFinanceBudgetBodyColorDefault)
+})
+
+export const CreateFinanceBudgetResponse = zod.object({
+  "id": zod.string(),
+  "category": zod.string(),
+  "spent": zod.number(),
+  "limit": zod.number(),
+  "color": zod.string(),
+  "status": zod.enum(['on_track', 'watch', 'over'])
+})
+
+
+/**
  * @summary Ask the financial assistant a question
  */
 

@@ -125,6 +125,14 @@ export interface FinanceBudget {
   status: FinanceBudgetStatus;
 }
 
+export interface FinanceBudgetInput {
+  /** @minLength 1 */
+  category: string;
+  /** @exclusiveMinimum 0 */
+  limit: number;
+  color?: string;
+}
+
 export interface FinanceTrendPoint {
   label: string;
   income: number;
