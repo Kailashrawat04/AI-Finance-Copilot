@@ -57,7 +57,7 @@ const navItems = [
 export function BrandMark({ small = false }: { small?: boolean }) {
   return (
     <div className={`flex items-center ${small ? 'gap-2' : 'gap-2.5'}`}>
-      <div className={`${small ? 'h-7 w-7 text-xs' : 'h-9 w-9 text-sm'} flex items-center justify-center rounded-[11px] bg-sidebar-primary font-bold text-sidebar-primary-foreground shadow-sm`}>
+      <div className={`${small ? 'h-7 w-7 text-xs' : 'h-9 w-9 text-sm'} brand-mark flex items-center justify-center rounded-[11px] font-bold text-sidebar-primary-foreground shadow-sm`}>
         FC
       </div>
       {!small && <span className="font-semibold tracking-[-0.02em] text-sidebar-foreground">Finance <span className="font-serif font-medium italic text-sidebar-primary">Copilot</span></span>}
@@ -82,13 +82,13 @@ export function AppShell({ children }: { children: ReactNode }) {
         type="button"
         aria-label="Open navigation"
         data-testid="button-open-navigation"
-        className="fixed left-4 top-4 z-40 flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-card text-foreground shadow-sm md:hidden"
+        className="glass-control fixed left-4 top-4 z-40 flex h-10 w-10 items-center justify-center rounded-xl border border-border text-foreground shadow-sm md:hidden"
         onClick={() => setMobileOpen(true)}
       >
         <Menu className="h-5 w-5" />
       </button>
       {mobileOpen && <button type="button" aria-label="Close navigation overlay" data-testid="button-close-navigation-overlay" className="fixed inset-0 z-40 bg-foreground/20 md:hidden" onClick={() => setMobileOpen(false)} />}
-      <aside className={`fixed inset-y-0 left-0 z-50 flex flex-col bg-sidebar text-sidebar-foreground transition-transform duration-300 md:translate-x-0 ${collapsed ? 'w-[78px]' : 'w-[248px]'} ${mobileOpen ? 'translate-x-0' : '-translate-x-full'} md:block`}>
+      <aside className={`shell-sidebar fixed inset-y-0 left-0 z-50 flex flex-col bg-sidebar text-sidebar-foreground transition-transform duration-300 md:translate-x-0 ${collapsed ? 'w-[78px]' : 'w-[248px]'} ${mobileOpen ? 'translate-x-0' : '-translate-x-full'} md:block`}>
         <div className={`flex h-[76px] items-center border-b border-sidebar-border ${collapsed ? 'justify-center px-3' : 'justify-between px-5'}`}>
           <Link href="/" className="rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring" data-testid="link-brand-home" onClick={() => setMobileOpen(false)}>
             <BrandMark small={collapsed} />
@@ -137,10 +137,10 @@ export function AppShell({ children }: { children: ReactNode }) {
               {health.isError ? 'Connection needs attention' : health.isLoading ? 'Checking your workspace' : 'Your workspace is up to date'}
             </div>
             <div className="ml-auto flex items-center gap-3">
-              <Link href="/assistant" data-testid="link-header-assistant" className="hidden items-center gap-2 rounded-xl border border-border bg-card px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary sm:flex">
+              <Link href="/assistant" data-testid="link-header-assistant" className="glass-control hidden items-center gap-2 rounded-xl border border-border px-3 py-2 text-xs font-medium text-muted-foreground sm:flex">
                 <Sparkles className="h-3.5 w-3.5 text-accent" /> Ask Copilot
               </Link>
-              <Link href="/settings" aria-label="Open settings" data-testid="link-header-settings" className="flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-card text-muted-foreground transition-colors hover:text-foreground"><Settings className="h-4 w-4" /></Link>
+              <Link href="/settings" aria-label="Open settings" data-testid="link-header-settings" className="glass-control flex h-9 w-9 items-center justify-center rounded-xl border border-border text-muted-foreground hover:text-foreground"><Settings className="h-4 w-4" /></Link>
               <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">{initialsLabel}</div>
             </div>
           </div>
@@ -177,12 +177,12 @@ export function QueryError({ onRetry, label = 'Something interrupted the view.' 
 }
 
 export function EmptyState({ icon: Icon = WalletCards, title, detail }: { icon?: LucideIcon; title: string; detail: string }) {
-  return <div className="flex min-h-44 flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-card/50 p-8 text-center"><div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-secondary text-primary"><Icon className="h-5 w-5" /></div><p className="text-sm font-semibold">{title}</p><p className="mt-1 max-w-sm text-xs leading-5 text-muted-foreground">{detail}</p></div>;
+  return <div className="glass-panel flex min-h-44 flex-col items-center justify-center rounded-2xl border border-dashed border-border p-8 text-center"><div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-secondary text-primary"><Icon className="h-5 w-5" /></div><p className="text-sm font-semibold">{title}</p><p className="mt-1 max-w-sm text-xs leading-5 text-muted-foreground">{detail}</p></div>;
 }
 
 export function StatCard({ label, value, detail, tone = 'default', className = '' }: { label: string; value: string; detail?: string; tone?: 'default' | 'positive' | 'negative' | 'accent'; className?: string }) {
   const toneClass = tone === 'positive' ? 'text-primary' : tone === 'negative' ? 'text-destructive' : tone === 'accent' ? 'text-accent-foreground' : 'text-foreground';
-  return <div className={`rounded-2xl border border-card-border bg-card p-5 shadow-[0_1px_0_hsl(var(--border)/.4)] transition-transform duration-300 hover:-translate-y-0.5 ${tone === 'accent' ? 'bg-accent/80' : ''} ${className}`}><p className={`text-xs font-medium ${tone === 'accent' ? 'text-foreground/70' : 'text-muted-foreground'}`}>{label}</p><p className={`mt-3 text-2xl font-semibold tracking-[-0.04em] ${toneClass}`}>{value}</p>{detail && <p className={`mt-2 text-xs ${tone === 'accent' ? 'text-foreground/65' : 'text-muted-foreground'}`}>{detail}</p>}</div>;
+  return <div className={`glass-panel rounded-2xl border border-card-border p-5 shadow-[0_1px_0_hsl(var(--border)/.4)] transition-transform duration-300 hover:-translate-y-0.5 ${tone === 'accent' ? 'bg-accent/65' : ''} ${className}`}><p className={`text-xs font-medium ${tone === 'accent' ? 'text-foreground/70' : 'text-muted-foreground'}`}>{label}</p><p className={`mt-3 text-2xl font-semibold tracking-[-0.04em] ${toneClass}`}>{value}</p>{detail && <p className={`mt-2 text-xs ${tone === 'accent' ? 'text-foreground/65' : 'text-muted-foreground'}`}>{detail}</p>}</div>;
 }
 
 export function AccountIcon({ type }: { type: FinanceAccount['type'] }) {
@@ -192,7 +192,7 @@ export function AccountIcon({ type }: { type: FinanceAccount['type'] }) {
 
 export function AccountCard({ account }: { account: FinanceAccount }) {
   const positive = account.balanceChange >= 0;
-  return <div className="group rounded-2xl border border-card-border bg-card p-5 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_12px_32px_hsl(var(--primary)/.08)]" data-testid={`card-account-${account.id}`}><div className="flex items-start justify-between"><AccountIcon type={account.type} /><span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: account.accent }} /></div><p className="mt-5 text-xs text-muted-foreground">{account.institution} · •••• {account.mask}</p><h3 className="mt-1 font-medium">{account.name}</h3><p className="mt-4 text-xl font-semibold tracking-[-0.035em]">{money(account.balance)}</p><p className={`mt-2 flex items-center gap-1 text-xs ${positive ? 'text-primary' : 'text-destructive'}`}>{positive ? <ArrowUpRight className="h-3.5 w-3.5" /> : <ArrowDownLeft className="h-3.5 w-3.5" />}{positive ? '+' : ''}{money(account.balanceChange)} <span className="text-muted-foreground">{account.balanceChangeLabel}</span></p></div>;
+  return <div className="glass-panel group rounded-2xl border border-card-border p-5 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_12px_32px_hsl(var(--primary)/.08)]" data-testid={`card-account-${account.id}`}><div className="flex items-start justify-between"><AccountIcon type={account.type} /><span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: account.accent }} /></div><p className="mt-5 text-xs text-muted-foreground">{account.institution} · •••• {account.mask}</p><h3 className="mt-1 font-medium">{account.name}</h3><p className="mt-4 text-xl font-semibold tracking-[-0.035em]">{money(account.balance)}</p><p className={`mt-2 flex items-center gap-1 text-xs ${positive ? 'text-primary' : 'text-destructive'}`}>{positive ? <ArrowUpRight className="h-3.5 w-3.5" /> : <ArrowDownLeft className="h-3.5 w-3.5" />}{positive ? '+' : ''}{money(account.balanceChange)} <span className="text-muted-foreground">{account.balanceChangeLabel}</span></p></div>;
 }
 
 export function TransactionRow({ transaction, compact = false }: { transaction: FinanceTransaction; compact?: boolean }) {
@@ -220,7 +220,7 @@ export function AddTransactionButton({ onClick }: { onClick: () => void }) {
 }
 
 export function SearchField({ value, onChange, placeholder = 'Search transactions' }: { value: string; onChange: (value: string) => void; placeholder?: string }) {
-  return <div className="relative"><Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><input type="search" value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} data-testid="input-search-transactions" className="h-11 w-full rounded-xl border border-input bg-card pl-10 pr-4 text-sm outline-none transition-colors placeholder:text-muted-foreground/70 focus:border-primary focus:ring-2 focus:ring-primary/10" /></div>;
+  return <div className="relative"><Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><input type="search" value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} data-testid="input-search-transactions" className="glass-control h-11 w-full rounded-xl border border-input pl-10 pr-4 text-sm outline-none placeholder:text-muted-foreground/70 focus:border-primary focus:ring-2 focus:ring-primary/10" /></div>;
 }
 
 export function CloseButton({ onClick }: { onClick: () => void }) {

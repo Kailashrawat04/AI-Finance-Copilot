@@ -61,8 +61,8 @@ const clerkAppearance = {
     colorForeground: '#1f3c36',
     colorMutedForeground: '#6b7770',
     colorDanger: '#b94b43',
-    colorBackground: '#fbf8f1',
-    colorInput: '#ffffff',
+    colorBackground: '#f8f6ef',
+    colorInput: '#fbfaf6',
     colorInputForeground: '#1f3c36',
     colorNeutral: '#d8d6ce',
     fontFamily: 'DM Sans, sans-serif',
@@ -70,7 +70,7 @@ const clerkAppearance = {
   },
   elements: {
     rootBox: 'w-full flex justify-center',
-    cardBox: 'bg-[#fbf8f1] rounded-2xl w-[440px] max-w-full overflow-hidden border border-[#dedbd1]',
+    cardBox: 'bg-[#f8f6ef]/80 backdrop-blur-xl rounded-2xl w-[440px] max-w-full overflow-hidden border border-[#d9d8cf] shadow-[0_24px_70px_rgba(31,60,54,.12)]',
     card: '!shadow-none !border-0 !bg-transparent !rounded-none',
     footer: '!shadow-none !border-0 !bg-transparent !rounded-none',
     headerTitle: 'text-[#1f3c36] font-semibold',
@@ -85,13 +85,13 @@ const clerkAppearance = {
     alertText: 'text-[#1f3c36]',
     logoBox: 'rounded-xl',
     logoImage: 'rounded-xl',
-    socialButtonsBlockButton: 'border-[#dedbd1] bg-white hover:bg-[#f2efe7]',
-    formButtonPrimary: 'bg-[#1f3c36] text-white hover:bg-[#285247]',
-    formFieldInput: 'border-[#d8d6ce] bg-white text-[#1f3c36]',
+    socialButtonsBlockButton: 'border-[#dedbd1] bg-[#fbfaf6] hover:bg-[#f2efe7]',
+    formButtonPrimary: 'bg-[#1f3c36] text-[#f8f6ef] hover:bg-[#285247]',
+    formFieldInput: 'border-[#d8d6ce] bg-[#fbfaf6] text-[#1f3c36]',
     footerAction: 'bg-transparent',
     dividerLine: 'bg-[#dedbd1]',
     alert: 'border-[#e7c8a0] bg-[#fff6e6]',
-    otpCodeFieldInput: 'border-[#d8d6ce] bg-white text-[#1f3c36]',
+    otpCodeFieldInput: 'border-[#d8d6ce] bg-[#fbfaf6] text-[#1f3c36]',
     formFieldRow: 'gap-2',
     main: 'bg-transparent',
   },
@@ -250,7 +250,7 @@ function Router() {
 
 function SignInPage() {
   return (
-    <div className="flex min-h-[100dvh] items-center justify-center bg-background px-4 py-8">
+    <div className="auth-surface flex min-h-[100dvh] items-center justify-center bg-background px-4 py-8">
       <SignIn routing="path" path={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`} />
     </div>
   );
@@ -258,7 +258,7 @@ function SignInPage() {
 
 function SignUpPage() {
   return (
-    <div className="flex min-h-[100dvh] items-center justify-center bg-background px-4 py-8">
+    <div className="auth-surface flex min-h-[100dvh] items-center justify-center bg-background px-4 py-8">
       <SignUp routing="path" path={`${basePath}/sign-up`} signInUrl={`${basePath}/sign-in`} />
     </div>
   );
