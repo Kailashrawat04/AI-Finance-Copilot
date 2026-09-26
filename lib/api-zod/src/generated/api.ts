@@ -69,6 +69,44 @@ export const ListFinanceAccountsResponse = zod.array(ListFinanceAccountsResponse
 
 
 /**
+ * @summary Add a connected account
+ */
+
+
+export const createFinanceAccountBodyMaskMin = 4;
+export const createFinanceAccountBodyMaskMax = 4;
+
+
+export const createFinanceAccountBodyMaskRegExp = new RegExp('^[0-9]{4}$');
+export const createFinanceAccountBodyBalanceChangeDefault = 0;
+export const createFinanceAccountBodyBalanceChangeLabelDefault = `manual entry`;
+export const createFinanceAccountBodyAccentDefault = `teal`;
+
+export const CreateFinanceAccountBody = zod.object({
+  "name": zod.string().min(1),
+  "institution": zod.string().min(1),
+  "type": zod.enum(['checking', 'savings', 'credit', 'investment']),
+  "mask": zod.string().min(createFinanceAccountBodyMaskMin).max(createFinanceAccountBodyMaskMax).regex(createFinanceAccountBodyMaskRegExp),
+  "balance": zod.number(),
+  "balanceChange": zod.number().default(createFinanceAccountBodyBalanceChangeDefault),
+  "balanceChangeLabel": zod.string().default(createFinanceAccountBodyBalanceChangeLabelDefault),
+  "accent": zod.string().default(createFinanceAccountBodyAccentDefault)
+})
+
+export const CreateFinanceAccountResponse = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "institution": zod.string(),
+  "type": zod.enum(['checking', 'savings', 'credit', 'investment']),
+  "mask": zod.string(),
+  "balance": zod.number(),
+  "balanceChange": zod.number(),
+  "balanceChangeLabel": zod.string(),
+  "accent": zod.string()
+})
+
+
+/**
  * @summary List recent transactions
  */
 export const listFinanceTransactionsQueryLimitDefault = 20;

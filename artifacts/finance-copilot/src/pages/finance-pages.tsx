@@ -7,6 +7,7 @@ import {
   getListFinanceAccountsQueryKey,
   getListFinanceBudgetsQueryKey,
   getListFinanceTransactionsQueryKey,
+  useCreateFinanceAccount,
   useCreateFinanceTransaction,
   useGetFinanceDashboard,
   useListFinanceAccounts,
@@ -14,6 +15,7 @@ import {
   useListFinanceTransactions,
   useSendAssistantChat,
   type AssistantChatMessage,
+  type FinanceAccountInputType,
   type FinanceTransactionInputType,
 } from '@workspace/api-client-react';
 import { ArrowRight, CheckCircle2, ChevronRight, CircleDollarSign, Clock3, Filter, Info, Lightbulb, MessageSquareText, Plus, Search, ShieldCheck, SlidersHorizontal, Sparkles, Target } from 'lucide-react';
@@ -139,11 +141,88 @@ export function BudgetsPage() {
   return <AppShell><PageIntro eyebrow="This month" title="Spend with a little more intention." detail="Budgets are guardrails, not judgments. Use the context to decide what deserves your attention." action={<button type="button" disabled data-testid="button-create-budget" title="Budget creation is not available in this workspace yet" className="flex cursor-not-allowed items-center gap-2 rounded-xl border border-border bg-card px-4 py-2.5 text-xs font-semibold text-muted-foreground opacity-70"><Plus className="h-4 w-4" /> Create budget</button>} />{budgets.isLoading ? <DashboardSkeleton /> : budgets.isError ? <QueryError onRetry={() => void budgets.refetch()} /> : <div className="space-y-6"><div className="grid gap-4 md:grid-cols-3"><StatCard label="Total planned" value={money(totalLimit)} detail="Across active categories" /><StatCard label="Spent so far" value={money(totalSpent)} detail={`${totalLimit ? Math.round(totalSpent / totalLimit * 100) : 0}% of your plan`} tone={totalSpent > totalLimit ? 'negative' : 'positive'} /><StatCard label="Categories to watch" value={String(data.filter((budget) => budget.status !== 'on_track').length).padStart(2, '0')} detail="Worth a closer look this week" tone="accent" /></div><div className="grid gap-6 lg:grid-cols-[1.1fr_.9fr]"><div className="rounded-2xl border border-card-border bg-card p-5 sm:p-6"><SectionHeading title="Category progress" detail="Where each dollar is landing" /><div className="space-y-7">{data.length ? data.map((budget) => <BudgetBar key={budget.id} budget={budget} />) : <EmptyState icon={Target} title="Set your first budget" detail="Give your month a shape with one category limit." />}</div></div><div className="rounded-2xl border border-card-border bg-card p-5 sm:p-6"><SectionHeading title="Spending context" detail="Compared with your recent baseline" /><div className="space-y-4">{dashboard.data?.spendingByCategory && Object.entries(dashboard.data.spendingByCategory).slice(0, 6).map(([label, value], index) => <div key={label} className="flex items-center gap-3"><div className="flex h-8 w-8 items-center justify-center rounded-lg bg-secondary text-xs font-semibold text-primary">{String(index + 1).padStart(2, '0')}</div><div className="min-w-0 flex-1"><div className="flex justify-between gap-3 text-xs"><span className="truncate font-medium">{label}</span><span className="font-semibold">{money(value)}</span></div><div className="mt-2 h-1.5 rounded-full bg-muted"><div className="h-full rounded-full bg-primary/75" style={{ width: `${Math.min(100, value / Math.max(...Object.values(dashboard.data?.spendingByCategory ?? { total: 1 })) * 100)}%` }} /></div></div></div>)}{!dashboard.data && <p className="text-xs text-muted-foreground">Spending context will appear when your overview is available.</p>}<div className="mt-8 rounded-xl bg-secondary/70 p-4"><div className="flex gap-3"><Info className="mt-0.5 h-4 w-4 shrink-0 text-primary" /><p className="text-xs leading-5 text-muted-foreground">Copilot can help explain a category shift, but it will never decide what you should spend.</p></div></div></div></div></div></div>}</AppShell>;
 }
 
+function AccountDialog({ onClose }: { onClose: () => void }) {
+  const queryClient = useQueryClient();
+  const create = useCreateFinanceAccount();
+  const [form, setForm] = useState({
+    name: '',
+    institution: '',
+    type: 'checking' as FinanceAccountInputType,
+    mask: '',
+    balance: '',
+    balanceChange: '0',
+  });
+  const [formError, setFormError] = useState('');
+
+  const submit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!form.name.trim() || !form.institution.trim() || !/^\d{4}$/.test(form.mask) || !form.balance) {
+      setFormError('Add the account name, institution, four-digit account ending, and balance.');
+      return;
+    }
+    setFormError('');
+    create.mutate(
+      {
+        data: {
+          name: form.name.trim(),
+          institution: form.institution.trim(),
+          type: form.type,
+          mask: form.mask,
+          balance: Number(form.balance),
+          balanceChange: Number(form.balanceChange || 0),
+          balanceChangeLabel: 'manual entry',
+          accent: form.type === 'credit' ? 'violet' : form.type === 'savings' ? 'gold' : 'teal',
+        },
+      },
+      {
+        onSuccess: () => {
+          void queryClient.invalidateQueries({ queryKey: getListFinanceAccountsQueryKey() });
+          void queryClient.invalidateQueries({ queryKey: getGetFinanceDashboardQueryKey() });
+          onClose();
+        },
+        onError: () => setFormError('The account could not be added. Please try again.'),
+      },
+    );
+  };
+
+  return (
+    <div className="fixed inset-0 z-[70] flex items-end justify-center bg-foreground/30 p-0 sm:items-center sm:p-6">
+      <div className="max-h-[92dvh] w-full max-w-lg overflow-y-auto rounded-t-3xl border border-border bg-card p-6 shadow-2xl sm:rounded-2xl" role="dialog" aria-modal="true" aria-labelledby="add-account-title">
+        <div className="flex items-start justify-between">
+          <div>
+            <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-primary/70">Account details</p>
+            <h2 id="add-account-title" className="mt-2 font-serif text-2xl tracking-[-0.03em]">Connect an account</h2>
+            <p className="mt-1 text-xs text-muted-foreground">Add a manual account snapshot to your private workspace.</p>
+          </div>
+          <CloseButton onClick={onClose} />
+        </div>
+        <form className="mt-6 space-y-4" onSubmit={submit}>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Account name"><input required value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} data-testid="input-account-name" placeholder="Everyday checking" className="form-input" /></Field>
+            <Field label="Institution"><input required value={form.institution} onChange={(event) => setForm((current) => ({ ...current, institution: event.target.value }))} data-testid="input-account-institution" placeholder="Northstar Bank" className="form-input" /></Field>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Account type"><div className="relative"><select value={form.type} onChange={(event) => setForm((current) => ({ ...current, type: event.target.value as FinanceAccountInputType }))} data-testid="select-account-type" className="form-input appearance-none pr-9"><option value="checking">Checking</option><option value="savings">Savings</option><option value="credit">Credit card</option><option value="investment">Investment</option></select><SelectChevron /></div></Field>
+            <Field label="Last 4 digits"><input required value={form.mask} onChange={(event) => setForm((current) => ({ ...current, mask: event.target.value.replace(/\D/g, '').slice(0, 4) }))} inputMode="numeric" maxLength={4} data-testid="input-account-mask" placeholder="4821" className="form-input" /></Field>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Current balance"><input required min={form.type === 'credit' ? undefined : '0'} step="0.01" type="number" value={form.balance} onChange={(event) => setForm((current) => ({ ...current, balance: event.target.value }))} data-testid="input-account-balance" placeholder="0.00" className="form-input" /></Field>
+            <Field label="Change since last month"><input step="0.01" type="number" value={form.balanceChange} onChange={(event) => setForm((current) => ({ ...current, balanceChange: event.target.value }))} data-testid="input-account-change" placeholder="0.00" className="form-input" /></Field>
+          </div>
+          {formError && <p className="rounded-lg bg-destructive/10 px-3 py-2 text-xs text-destructive" data-testid="status-account-error">{formError}</p>}
+          <button type="submit" disabled={create.isPending} data-testid="button-submit-account" className="mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary text-sm font-semibold text-primary-foreground transition-transform hover:-translate-y-0.5 disabled:cursor-wait disabled:opacity-60">{create.isPending ? 'Connecting account…' : 'Connect account'} {!create.isPending && <CheckCircle2 className="h-4 w-4" />}</button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 export function AccountsPage() {
+  const [showDialog, setShowDialog] = useState(false);
   const accounts = useListFinanceAccounts({ query: { queryKey: getListFinanceAccountsQueryKey() } });
   const data = accounts.data ?? [];
   const total = data.reduce((sum, account) => sum + account.balance, 0);
-  return <AppShell><PageIntro eyebrow="Connected accounts" title="Your whole picture, together." detail="Finance Copilot reads the accounts you choose to connect. You stay in control of the view." action={<button type="button" disabled data-testid="button-connect-account" title="Account connection is not available in this workspace yet" className="flex cursor-not-allowed items-center gap-2 rounded-xl bg-muted px-4 py-2.5 text-xs font-semibold text-muted-foreground opacity-70"><Plus className="h-4 w-4" /> Connect account</button>} />{accounts.isLoading ? <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3"><Skeleton className="h-48" /><Skeleton className="h-48" /><Skeleton className="h-48" /></div> : accounts.isError ? <QueryError onRetry={() => void accounts.refetch()} /> : <div className="space-y-6"><div className="rounded-2xl bg-primary p-6 text-primary-foreground sm:p-8"><div className="flex flex-col justify-between gap-8 sm:flex-row sm:items-end"><div><p className="text-xs text-primary-foreground/65">Combined balance</p><p className="mt-3 font-serif text-4xl tracking-[-0.04em]">{money(total)}</p></div><div className="max-w-xs text-sm leading-6 text-primary-foreground/70">Every account is represented here, so your daily view starts with the same grounded number.</div></div></div>{data.length ? <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{data.map((account) => <AccountCard key={account.id} account={account} />)}</div> : <EmptyState icon={CircleDollarSign} title="Connect your first account" detail="Add a checking, savings, credit, or investment account to start seeing the full picture." />}<div className="flex items-start gap-3 rounded-2xl border border-border bg-card p-5"><ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-primary" /><div><p className="text-sm font-semibold">Your data, explained plainly</p><p className="mt-1 text-xs leading-5 text-muted-foreground">Finance Copilot uses your connected account data to summarize patterns. It does not move money, make trades, or act as a financial advisor.</p></div></div></div>}</AppShell>;
+  return <AppShell><PageIntro eyebrow="Connected accounts" title="Your whole picture, together." detail="Finance Copilot reads the accounts you choose to connect. You stay in control of the view." action={<button type="button" onClick={() => setShowDialog(true)} data-testid="button-connect-account" className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-xs font-semibold text-primary-foreground transition-transform hover:-translate-y-0.5"><Plus className="h-4 w-4" /> Connect account</button>} />{accounts.isLoading ? <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3"><Skeleton className="h-48" /><Skeleton className="h-48" /><Skeleton className="h-48" /></div> : accounts.isError ? <QueryError onRetry={() => void accounts.refetch()} /> : <div className="space-y-6"><div className="rounded-2xl bg-primary p-6 text-primary-foreground sm:p-8"><div className="flex flex-col justify-between gap-8 sm:flex-row sm:items-end"><div><p className="text-xs text-primary-foreground/65">Combined balance</p><p className="mt-3 font-serif text-4xl tracking-[-0.04em]">{money(total)}</p></div><div className="max-w-xs text-sm leading-6 text-primary-foreground/70">Every account is represented here, so your daily view starts with the same grounded number.</div></div></div>{data.length ? <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{data.map((account) => <AccountCard key={account.id} account={account} />)}</div> : <EmptyState icon={CircleDollarSign} title="Connect your first account" detail="Add a checking, savings, credit, or investment account to start seeing the full picture." />}<div className="flex items-start gap-3 rounded-2xl border border-border bg-card p-5"><ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-primary" /><div><p className="text-sm font-semibold">Your data, explained plainly</p><p className="mt-1 text-xs leading-5 text-muted-foreground">Finance Copilot uses your connected account data to summarize patterns. It does not move money, make trades, or act as a financial advisor.</p></div></div></div>}{showDialog && <AccountDialog onClose={() => setShowDialog(false)} />}</AppShell>;
 }
 
 export function AssistantPage() {

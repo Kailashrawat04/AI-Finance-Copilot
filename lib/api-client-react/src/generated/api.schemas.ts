@@ -31,6 +31,34 @@ export interface FinanceAccount {
   accent: string;
 }
 
+export type FinanceAccountInputType = typeof FinanceAccountInputType[keyof typeof FinanceAccountInputType];
+
+
+export const FinanceAccountInputType = {
+  checking: 'checking',
+  savings: 'savings',
+  credit: 'credit',
+  investment: 'investment',
+} as const;
+
+export interface FinanceAccountInput {
+  /** @minLength 1 */
+  name: string;
+  /** @minLength 1 */
+  institution: string;
+  type: FinanceAccountInputType;
+  /**
+     * @minLength 4
+     * @maxLength 4
+     * @pattern ^[0-9]{4}$
+     */
+  mask: string;
+  balance: number;
+  balanceChange?: number;
+  balanceChangeLabel?: string;
+  accent?: string;
+}
+
 export type FinanceTransactionType = typeof FinanceTransactionType[keyof typeof FinanceTransactionType];
 
 

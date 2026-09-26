@@ -23,6 +23,7 @@ import type {
   AssistantChatInput,
   AssistantChatResponse,
   FinanceAccount,
+  FinanceAccountInput,
   FinanceBudget,
   FinanceDashboard,
   FinanceTransaction,
@@ -289,6 +290,94 @@ export function useListFinanceAccounts<TData = Awaited<ReturnType<typeof listFin
 
 
 
+
+export const getCreateFinanceAccountUrl = () => {
+
+
+
+
+  return `/api/finance/accounts`
+}
+
+/**
+ * @summary Add a connected account
+ */
+export const createFinanceAccount = async (financeAccountInput: FinanceAccountInput, options?: Parameters<typeof customFetch>[1]): Promise<FinanceAccount> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<FinanceAccount>(getCreateFinanceAccountUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(financeAccountInput)
+  }
+);}
+
+
+
+
+
+export const getCreateFinanceAccountMutationKey = () => ['createFinanceAccount'] as const;
+
+export const getCreateFinanceAccountMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createFinanceAccount>>, TError,CreateFinanceAccountMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createFinanceAccount>>, TError,CreateFinanceAccountMutationVariables, TContext> => {
+
+const mutationKey = getCreateFinanceAccountMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createFinanceAccount>>, CreateFinanceAccountMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  createFinanceAccount(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateFinanceAccountMutationResult = NonNullable<Awaited<ReturnType<typeof createFinanceAccount>>>
+    export type CreateFinanceAccountMutationBody = BodyType<FinanceAccountInput>
+    export type CreateFinanceAccountMutationError = ErrorType<void>
+    export type CreateFinanceAccountMutationVariables = {data: BodyType<FinanceAccountInput>}
+
+    /**
+ * @summary Add a connected account
+ */
+export const useCreateFinanceAccount = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createFinanceAccount>>, TError,CreateFinanceAccountMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createFinanceAccount>>,
+        TError,
+        CreateFinanceAccountMutationVariables,
+        TContext
+      > => {
+      return useMutation(getCreateFinanceAccountMutationOptions(options));
+    }
 
 export const getListFinanceTransactionsUrl = (params?: ListFinanceTransactionsParams,) => {
   const normalizedParams = new URLSearchParams();

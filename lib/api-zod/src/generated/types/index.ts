@@ -11,6 +11,8 @@ export * from './assistantChatMessage';
 export * from './assistantChatMessageRole';
 export * from './assistantChatResponse';
 export * from './financeAccount';
+export * from './financeAccountInput';
+export * from './financeAccountInputType';
 export * from './financeAccountType';
 export * from './financeBudget';
 export * from './financeBudgetStatus';

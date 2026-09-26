@@ -54,6 +54,25 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/FinanceAccount"
+    post:
+      operationId: createFinanceAccount
+      tags: [finance]
+      summary: Add a connected account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FinanceAccountInput"
+      responses:
+        "201":
+          description: Created account
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FinanceAccount"
+        "400":
+          description: Invalid account
   /finance/transactions:
     get:
       operationId: listFinanceTransactions
@@ -174,6 +193,35 @@ components:
         accent:
           type: string
       required: [id, name, institution, type, mask, balance, balanceChange, balanceChangeLabel, accent]
+    FinanceAccountInput:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+        institution:
+          type: string
+          minLength: 1
+        type:
+          type: string
+          enum: [checking, savings, credit, investment]
+        mask:
+          type: string
+          minLength: 4
+          maxLength: 4
+          pattern: "^[0-9]{4}$"
+        balance:
+          type: number
+        balanceChange:
+          type: number
+          default: 0
+        balanceChangeLabel:
+          type: string
+          default: "manual entry"
+        accent:
+          type: string
+          default: "teal"
+      required: [name, institution, type, mask, balance]
     FinanceTransaction:
       type: object
       properties:

@@ -9,6 +9,8 @@ import {
 import {
   CreateFinanceTransactionBody,
   CreateFinanceTransactionResponse,
+  CreateFinanceAccountBody,
+  CreateFinanceAccountResponse,
   GetFinanceDashboardResponse,
   ListFinanceAccountsResponse,
   ListFinanceBudgetsResponse,
@@ -154,47 +156,9 @@ const seedBudgets = [
 
 const seedPromises = new Map<string, Promise<void>>();
 
-export async function ensureFinanceSeeded(userId: string) {
-  let seedPromise = seedPromises.get(userId);
-  if (!seedPromise) {
-    seedPromise = (async () => {
-      const existing = await db
-        .select({ id: financeAccounts.id })
-        .from(financeAccounts)
-        .where(eq(financeAccounts.userId, userId))
-        .limit(1);
-      if (existing.length > 0) return;
-
-      await db.insert(financeAccounts).values(
-        seedAccounts.map(({ id: _id, ...account }) => ({
-          ...account,
-          id: crypto.randomUUID(),
-          userId,
-        })),
-      );
-      await db.insert(financeTransactions).values(
-        seedTransactions.map(({ id: _id, ...transaction }) => ({
-          ...transaction,
-          id: crypto.randomUUID(),
-          userId,
-        })),
-      );
-      await db.insert(financeBudgets).values(
-        seedBudgets.map(({ id: _id, ...budget }) => ({
-          ...budget,
-          id: crypto.randomUUID(),
-          userId,
-        })),
-      );
-    })();
-    seedPromises.set(userId, seedPromise);
-  }
-  try {
-    await seedPromise;
-  } catch (error) {
-    seedPromises.delete(userId);
-    throw error;
-  }
+export async function ensureFinanceSeeded(_userId: string) {
+  // New workspaces intentionally start empty. Existing user-owned rows remain
+  // untouched; the legacy starter arrays above are no longer inserted.
 }
 
 function toTransactionResponse(transaction: typeof seedTransactions[number]) {
@@ -214,6 +178,29 @@ router.get("/finance/accounts", async (_req, res, next) => {
       .from(financeAccounts)
       .where(eq(financeAccounts.userId, userId));
     res.json(ListFinanceAccountsResponse.parse(accounts));
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post("/finance/accounts", async (req, res, next) => {
+  try {
+    const userId = res.locals.userId as string;
+    const body = CreateFinanceAccountBody.parse(req.body);
+    const account = {
+      id: crypto.randomUUID(),
+      userId,
+      name: body.name,
+      institution: body.institution,
+      type: body.type,
+      mask: body.mask,
+      balance: body.balance,
+      balanceChange: body.balanceChange ?? 0,
+      balanceChangeLabel: body.balanceChangeLabel ?? "manual entry",
+      accent: body.accent ?? "teal",
+    };
+    await db.insert(financeAccounts).values(account);
+    res.status(201).json(CreateFinanceAccountResponse.parse(account));
   } catch (error) {
     next(error);
   }
@@ -323,26 +310,38 @@ router.get("/finance/dashboard", async (_req, res, next) => {
     const budgetUsed = budgets.reduce((sum, budget) => sum + budget.spent, 0);
     const budgetLimit = budgets.reduce((sum, budget) => sum + budget.limit, 0);
     const totalBalance = accounts.reduce((sum, account) => sum + account.balance, 0);
+    const hasWorkspaceData = accounts.length > 0 || transactions.length > 0 || budgets.length > 0;
     const response = {
       totalBalance,
       balanceChange: monthlyIncome - monthlySpending,
-      balanceChangePercent: 3.8,
+      balanceChangePercent: hasWorkspaceData ? 3.8 : 0,
       monthlyIncome,
       monthlySpending,
       savingsRate: monthlyIncome ? ((monthlyIncome - monthlySpending) / monthlyIncome) * 100 : 0,
       budgetUsed,
       budgetLimit,
-      insight: "Subscriptions are your only category over plan",
-      insightDetail: "You’re $16 above your subscription budget. Everything else is tracking on target.",
+      insight: hasWorkspaceData ? "Subscriptions are your only category over plan" : "Your workspace is ready",
+      insightDetail: hasWorkspaceData
+        ? "You’re $16 above your subscription budget. Everything else is tracking on target."
+        : "Add an account, budget, or transaction to see your personal money picture here.",
       spendingByCategory,
-      trend: [
-        { label: "Apr", income: 5200, spending: 3600 },
-        { label: "May", income: 5200, spending: 3980 },
-        { label: "Jun", income: 4820, spending: 3420 },
-        { label: "Jul", income: 4820, spending: 3120 },
-        { label: "Aug", income: 4820, spending: 3280 },
-        { label: "Sep", income: 4820, spending: monthlySpending },
-      ],
+      trend: hasWorkspaceData
+        ? [
+            { label: "Apr", income: 5200, spending: 3600 },
+            { label: "May", income: 5200, spending: 3980 },
+            { label: "Jun", income: 4820, spending: 3420 },
+            { label: "Jul", income: 4820, spending: 3120 },
+            { label: "Aug", income: 4820, spending: 3280 },
+            { label: "Sep", income: 4820, spending: monthlySpending },
+          ]
+        : [
+            { label: "Apr", income: 0, spending: 0 },
+            { label: "May", income: 0, spending: 0 },
+            { label: "Jun", income: 0, spending: 0 },
+            { label: "Jul", income: 0, spending: 0 },
+            { label: "Aug", income: 0, spending: 0 },
+            { label: "Sep", income: 0, spending: 0 },
+          ],
       recentTransactions: transactions.slice(0, 6).map(toTransactionResponse),
     };
     res.json(GetFinanceDashboardResponse.parse(response));
